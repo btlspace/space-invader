@@ -1,0 +1,26 @@
+/* Réinitialisation de base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #000; /* Debug: changer en red temporairement pour tester */
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+}
+
+#gameCanvas {
+  display: block;
+  background: #000;
+}
+
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  font-size: 18px;
+}
