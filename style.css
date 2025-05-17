@@ -1,26 +1,352 @@
-/* Réinitialisation de base */
+/* === Reset & Base === */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-
-body {
-  background: #000; /* Debug: changer en red temporairement pour tester */
-  color: #fff;
-  font-family: 'JetBrains Mono', monospace;
+html, body {
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
-
-#gameCanvas {
-  display: block;
-  background: #000;
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: #0a1b2a;
+  color: #00dbe8;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
 }
 
+/* === Particles.js full-screen === */
+#particles-js {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0;
+}
+
+/* === Canvas du jeu === */
+#gameCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: calc(100vh - 48px); /* ajuster selon la hauteur de ton footer ! */
+  background: transparent;
+  z-index: 1;
+  display: block;
+}
+
+/* === HUD principal === */
 #hud {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
   z-index: 10;
-  font-size: 18px;
+}
+.hud-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(10,27,42,0.8);
+  border: 1px solid #00AABF;
+  border-radius: 0.5rem;
+  color: #DBE9F4;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.hud-container span {
+  display: flex; align-items: center; gap: 0.3rem;
+}
+
+/* === Cœurs de vie (à droite du HUD) === */
+#hearts {
+  position: fixed;
+  top: 1rem;
+  right: 5rem;    /* à gauche du bouton Pause */
+  z-index: 10;
+  font-size: 1.5rem;
+  color: red;
+  text-shadow: 0 0 5px red;
+}
+
+/* === Bouton Pause (tout à droite) === */
+#pauseBtn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  padding: 0.8rem 1.2rem;
+  background: #00AABF;
+  color: #0a1b2a;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+#pauseBtn:hover {
+  background: #00dbe8;
+}
+
+/* === Footer toujours visible === */
+#footer {
+  position: fixed;
+  bottom: 0; left: 0;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 0.5rem 0;
+  z-index: 30;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: #00dbe8;
+}
+#footer a {
+  display: flex; align-items: center; gap:0.5rem;
+  text-decoration: none; color: inherit;
+}
+#footer img {
+  width: 20px; height: 20px;
+  filter: invert(96%) sepia(14%) saturate(749%) hue-rotate(132deg)
+          brightness(107%) contrast(102%);
+  transition: transform 0.2s;
+}
+#footer a:hover img {
+  transform: scale(1.1);
+}
+
+/* === Overlay console-style === */
+#overlay {
+  position: fixed; top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  display: none;
+  align-items: center; justify-content: center;
+  background: rgba(10,27,42,0.95);
+  z-index: 20;
+  padding: 2rem;
+  overflow-y: auto;
+}
+#overlay.show {
+  display: flex;
+}
+.overlay-content {
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  color:#DBE9F4;
+}
+
+/* === Prompt & Curseur typé === */
+#overlay h1 {
+  font-size: 2.4rem;
+  margin-bottom: 1rem;
+  color: #00dbe8;
+}
+.typed-cursor {
+  display: inline-block;
+  background: #00dbe8;
+  width: 0.6ch;
+  animation: blink 1s steps(1) infinite;
+  margin-left: -0.2ch;
+}
+
+/* === Menu principal : gros boutons === */
+.menu-buttons {
+  margin-top: 2rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.menu-buttons button {
+  width: 200px;
+  padding: 1rem;
+  font-size: 1.1rem;
+  background: #00AABF;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.menu-buttons button:hover {
+  background: #00dbe8;
+}
+
+/* === Tutoriel et Crédits === */
+.tutorial-list, .credits-list {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+.tutorial-list li, .credits-list p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+kbd {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  margin: 0 0.2rem;
+  background: #0a1b2a;
+  border: 1px solid #00AABF;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-family: 'JetBrains Mono', monospace;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+/* === Subtitle clignotant === */
+.subtitle.blinking {
+  color: #ffffff;
+  margin-top: 1rem;
+  font-size: 1rem;
+  animation: blink 1s steps(1) infinite;
+}
+.subtitle .underscore {
+  display: inline-block;
+  background: #ffffff;
+  width: 0.5ch;
+  animation: blink 1s steps(1) infinite;
+  margin-left: -0.2ch;
+}
+
+/* === Boutons RETOUR & REJOUER (si utilisés) === */
+.menu-back, .replay-btn {
+  margin-top: 2rem;
+  padding: 0.8rem 1.6rem;
+  background: #00AABF;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.menu-back:hover, .replay-btn:hover {
+  background: #00dbe8;
+}
+
+/* === Animations === */
+@keyframes blink {
+  0%,50%   { opacity: 1; }
+  51%,100% { opacity: 0; }
+}
+
+/* === Responsive === */
+@media (max-width: 900px) {
+  #gameCanvas { width: 100vw; height: calc(100vh - 48px); }
+  .hud-container { font-size: 0.8rem; gap:0.6rem; }
+  #pauseBtn { right:1rem; }
+  #footer { gap:1rem; font-size:0.8rem; }
+}
+/* ==== Tous les boutons de l’overlay et HUD ==== */
+button,
+.menu-buttons button,
+.menu-back,
+.replay-btn,
+#pauseBtn {
+  color: #ffffff;
+  background: #00AABF;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background 0.2s;
+}
+button:hover,
+.menu-buttons button:hover,
+.menu-back:hover,
+.replay-btn:hover,
+#pauseBtn:hover {
+  background: #00dbe8;
+}
+button {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+/* === Bouton Pause spécifique === */
+#pauseBtn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+/* === Footer === */
+#footer { /* inchangé */ }
+
+/* === Overlay === */
+#overlay { /* inchangé */ }
+
+/* === Menu principal === */
+.menu-buttons {
+  margin-top: 2rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.menu-buttons button {
+  width: 200px;
+  padding: 1rem;
+  font-size: 1.1rem;
+}
+
+/* === Tutoriel & Crédits === */
+.tutorial-list, .credits-list {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+.tutorial-list li, .credits-list p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+kbd {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  margin: 0 0.2rem;
+  background: #0a1b2a;
+  border: 1px solid #00AABF;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+
+/* === Subtitle clignotant === */
+.subtitle.blinking {
+  color: #ffffff;
+  margin-top: 1rem;
+  animation: blink 1s steps(1) infinite;
+}
+
+/* === Animations === */
+@keyframes blink {
+  0%,50%   { opacity: 1; }
+  51%,100% { opacity: 0; }
+}
+
+/* === Responsive === */
+@media (max-width: 900px) {
+  .hud-container { font-size: 0.8rem; gap:0.6rem; }
+  #pauseBtn { right:1rem; }
+}
+.hud-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(10,27,42,0.8);
+  border: 1px solid #00AABF;
+  border-radius: 0.5rem;
+  color: #DBE9F4;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  min-width: 300px;
+}
+
+/* Style des cœurs */
+.hud-container .hearts {
+  font-size: 1.2rem;
+  line-height: 1;
 }

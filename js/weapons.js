@@ -1,88 +1,63 @@
-// weapons.js
+// js/weapons.js
+
 import { config } from '../config.js';
 import { audio }  from './audioManager.js';
 
 export class WeaponManager {
-  constructor(canvas, ctx) {
+  constructor(canvas, ctx, explosionManager) {
     this.canvas        = canvas;
     this.ctx           = ctx;
+    this.explosions    = explosionManager;
     this.bullets       = [];
     this.timeSinceLast = 0;
-    const ws           = config.weaponSettings;
-    // préchargement des réglages
-    this.ws            = ws;
   }
 
   update(delta, player, enemies) {
-    const ws = this.ws;
-    const typeSettings = ws[player.weaponType];
+    const wc     = config.weaponConfigs[player.weaponType];
+    const lvl    = player.weaponLevel;
+    const params = wc.params;
+    const ws     = config.weaponSettings;
 
-    // 1) calcul dynamique de la cadence de tir
-    if (player.weaponType === 'explosive') {
-      this.fireRate = ws[typeSettings.fireRateKey];
+    // 1) Calcul du fireRate
+    if (Array.isArray(wc.mode) && wc.mode.includes('explosive')) {
+      this.fireRate = ws[wc.fireRateKey];
+    } else if (wc.mode === 'explosive') {
+      this.fireRate = ws[wc.fireRateKey];
     } else {
-      const evenLvls = Math.floor(player.weaponLevel / 2);
-      this.fireRate = ws.baseFireRate * Math.pow(ws.fireRateDecreaseFactor, evenLvls);
+      const even = Math.floor((lvl - 1) / 2);
+      this.fireRate = ws[wc.fireRateKey] *
+                      Math.pow(ws.fireRateDecreaseFactor, even);
     }
 
-    // 2) tir si ready
+    // 2) Tir si possible
     this.timeSinceLast += delta;
     if (player.shooting && this.timeSinceLast >= this.fireRate) {
-      this.shoot(player);
+      this._shootMode(wc, lvl, ws.projectileSpeed, player);
       this.timeSinceLast = 0;
     }
 
-    // 3) update des projectiles
+    // 3) Update des projectiles et collisions
     let hits = 0;
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i];
       b.x += b.vx * delta;
       b.y += b.vy * delta;
 
-      // 4) collision avec ennemis
+      // collision avec ennemis
       for (const e of enemies.enemies) {
         if (e.alive &&
             b.x > e.x && b.x < e.x + e.width &&
             b.y > e.y && b.y < e.y + e.height) {
 
-          // explosive : détruit la cible + voisins
-          if (b.explodeRadius) {
-            const idx = enemies.enemies.indexOf(e);
-            // cible
-            e.alive = false; hits++; audio.play('enemyKilled');
-            // voisin gauche
-            if (idx % enemies.cols > 0) {
-              const l = enemies.enemies[idx - 1];
-              if (l.alive) { l.alive = false; hits++; audio.play('enemyKilled'); }
-            }
-            // voisin droit
-            if (idx % enemies.cols < enemies.cols - 1) {
-              const r = enemies.enemies[idx + 1];
-              if (r.alive) { r.alive = false; hits++; audio.play('enemyKilled'); }
-            }
+          // spawn explosion visuelle
+          this.explosions.spawn(b.x, b.y);
 
-          } else {
-            // simple hit (classic, spread, piercing)
-            e.alive = false; hits++; audio.play('enemyKilled');
-          }
-
-          // 5) ralentissement global des ennemis
-          enemies.moveDelay = Math.max(
-            enemies.minMoveDelay,
-            enemies.moveDelay - enemies.decrementPerKill
-          );
-
-          // 6) gestion piercing
-          if (b.remainingPierce > 1) {
-            b.remainingPierce--;
-          } else {
-            this.bullets.splice(i, 1);
-          }
+          hits += this._applyHit(b, e, enemies);
           break;
         }
       }
 
-      // 7) suppression hors-écran
+      // suppression hors écran
       if (b.y < 0 || b.y > this.canvas.height) {
         this.bullets.splice(i, 1);
       }
@@ -91,99 +66,133 @@ export class WeaponManager {
     return hits;
   }
 
-  shoot(player) {
-    const ws    = this.ws;
-    const type  = player.weaponType;
-    const lvl   = player.weaponLevel;
-    const speed = ws.projectileSpeed;
-    const cfg   = ws[type];
-
-    switch (type) {
-      case 'classic': {
-        const count = cfg.baseCount + Math.floor((lvl - 1) / cfg.levelInterval);
-        const spacing = cfg.spacing;
-        for (let i = 0; i < count; i++) {
-          const offset = (i - (count - 1)/2) * spacing;
-          this._spawnBullet(
-            player.x + player.width/2 + offset,
-            player.y,
-            0, -speed,
-            1, 0,
-            type
-          );
-        }
-        break;
+  /** Sélectionne et exécute les sous-modes de tir */
+  _shootMode(wc, lvl, speed, player) {
+    const modes = Array.isArray(wc.mode) ? wc.mode : [wc.mode];
+    modes.forEach(mode => {
+      switch (mode) {
+        case 'projectile':
+          this._shootProjectile(wc.params, lvl, speed, player);
+          break;
+        case 'spread':
+          this._shootSpread(wc.params, lvl, speed, player);
+          break;
+        case 'explosive':
+          this._shootExplosive(wc.params, speed, player);
+          break;
+        case 'piercing':
+          this._shootPiercing(wc.params, lvl, speed, player);
+          break;
       }
-
-      case 'spread': {
-        const count = cfg.baseCount + 2 * Math.floor((lvl - 1) / cfg.levelInterval);
-        const range = cfg.spreadAngle;
-        for (let i = 0; i < count; i++) {
-          const angle = (count === 1)
-            ? 0
-            : -range/2 + (range/(count - 1)) * i;
-          this._spawnBullet(
-            player.x + player.width/2,
-            player.y,
-            Math.sin(angle)*speed,
-            -Math.cos(angle)*speed,
-            1, 0,
-            type
-          );
-        }
-        break;
-      }
-
-      case 'explosive':
-        this._spawnBullet(
-          player.x + player.width/2,
-          player.y,
-          0, -speed,
-          1,
-          cfg.radiusUnits,
-          type
-        );
-        break;
-
-      case 'piercing':
-        this._spawnBullet(
-          player.x + player.width/2,
-          player.y,
-          0, -speed,
-          Math.min(lvl, cfg.maxPierce),
-          0,
-          type
-        );
-        break;
-    }
-
+    });
     audio.play('shoot');
   }
 
-  _spawnBullet(x, y, vx, vy, remainingPierce, explodeRadius, type) {
+  _shootProjectile({ baseCount, levelInterval, spacing }, lvl, speed, player) {
+    const count = baseCount + Math.floor((lvl - 1) / levelInterval);
+    for (let i = 0; i < count; i++) {
+      const offset = (i - (count - 1) / 2) * spacing;
+      this._spawn(player, 0, -speed, 1, 0, offset);
+    }
+  }
+
+  _shootSpread({ baseCount, levelInterval, spreadAngle }, lvl, speed, player) {
+    const count = baseCount + 2 * Math.floor((lvl - 1) / levelInterval);
+    for (let i = 0; i < count; i++) {
+      const angle = count === 1
+        ? 0
+        : -spreadAngle / 2 + (spreadAngle / (count - 1)) * i;
+      this._spawn(
+        player,
+        Math.sin(angle) * speed,
+        -Math.cos(angle) * speed,
+        1,
+        0,
+        0
+      );
+    }
+  }
+
+  _shootExplosive({ radiusUnits }, speed, player) {
+    this._spawn(player, 0, -speed, 1, radiusUnits, 0);
+  }
+
+  _shootPiercing({ maxPierce }, lvl, speed, player) {
+    const pierce = Math.min(lvl, maxPierce);
+    this._spawn(player, 0, -speed, pierce, 0, 0);
+  }
+
+  /** Applique l’impact selon explodeRadius et remainingPierce */
+  _applyHit(b, e, enemies) {
+    let hits = 0;
+
+    if (b.explodeRadius) {
+      const idx = enemies.enemies.indexOf(e);
+      [0, -1, +1].forEach(off => {
+        const n = enemies.enemies[idx + off];
+        if (n && n.alive) {
+          n.alive = false;
+          hits++;
+          audio.play('enemyKilled');
+        }
+      });
+    } else {
+      e.alive = false;
+      hits++;
+      audio.play('enemyKilled');
+    }
+
+    // ajuste moveDelay
+    enemies.moveDelay = Math.max(
+      enemies.minMoveDelay,
+      enemies.moveDelay - enemies.decrementPerKill
+    );
+
+    // gestion perçage
+    if (b.remainingPierce > 1) {
+      b.remainingPierce--;
+    } else {
+      this.bullets = this.bullets.filter(x => x !== b);
+    }
+
+    return hits;
+  }
+
+  /** Crée un projectile */
+  _spawn(player, vx, vy, remainingPierce, explodeRadius, xOffset) {
     this.bullets.push({
-      x, y, vx, vy,
-      width: 4, height: 10,
+      x:                 player.x + player.width / 2 + xOffset,
+      y:                 player.y,
+      vx,
+      vy,
       remainingPierce,
       explodeRadius,
-      type
+      type:              player.weaponType,
+      width:             4,
+      height:            10
     });
   }
 
+  /** Dessine tous les projectiles avec un effet de glow */
   draw() {
     this.ctx.save();
     this.bullets.forEach(b => {
-      // style selon type
-      this.ctx.fillStyle = config.projectileColors[b.type];
-      if (b.type === 'spread') {
-        // cercle pour spread
+      const wc = config.weaponConfigs[b.type];
+      this.ctx.fillStyle = wc.color;
+      this.ctx.shadowBlur  = 8;
+      this.ctx.shadowColor = wc.color;
+
+      if (wc.mode === 'spread' || (Array.isArray(wc.mode) && wc.mode.includes('spread'))) {
         this.ctx.beginPath();
-        this.ctx.arc(b.x, b.y, 3, 0, 2*Math.PI);
+        this.ctx.arc(b.x, b.y, 4, 0, 2 * Math.PI);
         this.ctx.fill();
       } else {
-        // rectangle pour les autres
-        this.ctx.fillRect(b.x - b.width/2, b.y, b.width, b.height);
+        this.ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
       }
+
+      // reset shadow for next iteration
+      this.ctx.shadowBlur  = 0;
+      this.ctx.shadowColor = 'transparent';
     });
     this.ctx.restore();
   }

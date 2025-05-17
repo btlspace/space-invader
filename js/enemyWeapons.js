@@ -1,15 +1,16 @@
-// enemyWeapons.js
+// js/enemyWeapons.js
+
 import { config } from '../config.js';
 import { audio }  from './audioManager.js';
 
 export class EnemyWeapons {
   constructor(canvas, ctx, enemies) {
-    this.canvas = canvas;
-    this.ctx    = ctx;
-    this.enemies = enemies;
-    this.bullets = [];
-    this.fireRate = config.enemyFireRate;
-    this.bulletSpeed = config.enemyBulletSpeed;
+    this.canvas       = canvas;
+    this.ctx          = ctx;
+    this.enemies      = enemies;
+    this.bullets      = [];
+    this.fireRate     = config.enemyFireRate;
+    this.bulletSpeed  = config.enemyBulletSpeed;
     this.timeSinceLast = 0;
   }
 
@@ -57,9 +58,15 @@ export class EnemyWeapons {
   }
 
   draw() {
-    this.ctx.fillStyle = '#f0f';
-    this.bullets.forEach(b =>
-      this.ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height)
-    );
+    const ctx = this.ctx;
+    ctx.save();
+    // glow important en magenta
+    ctx.shadowBlur  = 12;
+    ctx.shadowColor = '#ff00ff';
+    ctx.fillStyle   = '#ff00ff';
+    this.bullets.forEach(b => {
+      ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
+    });
+    ctx.restore();
   }
 }

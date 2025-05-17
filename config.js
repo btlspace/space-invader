@@ -1,76 +1,111 @@
-// config.js
+// js/config.js
+
 export const config = {
-  // Mouvement
-  shipSpeed: 300,
+  // ——— Mouvement ———
+  shipSpeed:      300,
   baseEnemySpeed: 50,
-  speedFactor: 1.05,
-  countFactor: 1.1,
+  speedFactor:    1.05,
+  countFactor:    1.1,
 
-  // Drops & rarité
-  dropRate: 0.05,
-  dropWeights: {
-    classic:   0.6,
-    spread:    0.25,
-    explosive: 0.1,
-    piercing:  0.05
-  },
-  maxUpgradeLevel: 5,
+  // ——— Vies ———
+  maxLives:       3,
 
-  // Grille ennemis
+  // ——— Grille ennemis ———
   baseRows: 3,
   baseCols: 5,
 
-  // Mobile
-  mobile: { buttonSize: 64, spacing: 16 },
+  // ——— UI mobile ———
+  mobile: {
+    buttonSize: 64,
+    spacing:    16
+  },
 
-  // Déplacement global des ennemis
-  baseMoveDelay: 0.6,
-  minMoveDelay: 0.1,
-  decrementPerKill: 0.02,
+  // ——— Déplacement global ennemis ———
+  baseMoveDelay:     0.6,
+  minMoveDelay:      0.1,
+  decrementPerKill:  0.02,
   delayStepPerLevel: 0.05,
 
-  // Tirs ennemis
-  enemyFireRate: 1.5,
+  // ——— Tirs ennemis ———
+  enemyFireRate:    1.5,
   enemyBulletSpeed: 200,
 
-  // Réglages spécifiques aux armes
-  weaponSettings: {
-    baseFireRate:            0.5,            // cadence de tir générale
-    fireRateDecreaseFactor:  0.95,           // réduction par niveau pair
-    explosiveFireRate:       1.5,            // cadence spéciale explosive
-    projectileSpeed:         300,            // px/s pour tous les projectiles
+  // ——— Taux de drop global ———
+  dropRate:         0.05,
 
+  // ——— Réglages globaux armes ———
+  weaponSettings: {
+    baseFireRate:           0.5,
+    fireRateDecreaseFactor: 0.95,
+    explosiveFireRate:      1.5,
+    projectileSpeed:        300
+  },
+
+  // ——— Config par arme ———
+  weaponConfigs: {
     classic: {
-      baseCount:     1,     // tirs au niveau 1
-      levelInterval: 3,     // +1 tir tous les 3 niveaux
-      spacing:       10      // écart horizontal (px)
+      displayName: 'Classique',
+      mode:        'projectile',
+      color:       '#ffffff',
+      maxLevel:    5,
+      fireRateKey: 'baseFireRate',
+      dropWeight:  0.6,
+      params: {
+        baseCount:     1,
+        levelInterval: 3,
+        spacing:       10,
+        spreadAngle:   0,
+        radiusUnits:   0,
+        maxPierce:     0
+      }
     },
     spread: {
-      baseCount:     1,           // projectiles au niveau 1
-      levelInterval: 2,           // +2 projectiles tous les 2 niveaux
-      spreadAngle:   Math.PI/6    // cône ±15°
+      displayName: 'Dispersé',
+      mode:        'spread',
+      color:       '#00ff00',
+      maxLevel:    5,
+      fireRateKey: 'baseFireRate',
+      dropWeight:  0.25,
+      params: {
+        baseCount:     1,
+        levelInterval: 2,
+        spacing:       0,
+        spreadAngle:   Math.PI/6,
+        radiusUnits:   0,
+        maxPierce:     0
+      }
     },
     explosive: {
-      radiusUnits:   1,   // détruit cible + voisins immédiats
-      fireRateKey:   'explosiveFireRate'
+      displayName: 'Explosif',
+      mode:        'explosive',
+      color:       '#ff8800',
+      maxLevel:    1,
+      fireRateKey: 'explosiveFireRate',
+      dropWeight:  0.1,
+      params: {
+        baseCount:     0,
+        levelInterval: 0,
+        spacing:       0,
+        spreadAngle:   0,
+        radiusUnits:   1,
+        maxPierce:     0
+      }
     },
     piercing: {
-      maxPierce:     2    // perfore jusqu’à 2 ennemis max
+      displayName: 'Perçant',
+      mode:        'piercing',
+      color:       '#0088ff',
+      maxLevel:    5,
+      fireRateKey: 'baseFireRate',
+      dropWeight:  0.05,
+      params: {
+        baseCount:     0,
+        levelInterval: 0,
+        spacing:       0,
+        spreadAngle:   0,
+        radiusUnits:   0,
+        maxPierce:     2
+      }
     }
-  },
-
-  // Couleurs pour drops/HUD
-  dropColors: {
-    classic:   '#ffffff',
-    spread:    '#00ff00',
-    explosive: '#ff8800',
-    piercing:  '#0088ff'
-  },
-  // Couleurs pour projectiles (peut être identique ou différent)
-  projectileColors: {
-    classic:   '#ffffff',
-    spread:    '#00ff00',
-    explosive: '#ff8800',
-    piercing:  '#0088ff'
   }
 };

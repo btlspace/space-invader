@@ -1,26 +1,34 @@
-// hud.js
+// js/hud.js
 import { config } from '../config.js';
+import { bindPauseButton } from './sceneOverlay.js';
 
-export class HUD {
-  constructor(canvas, ctx) {
-    this.canvas = canvas;
-    this.ctx    = ctx;
-    this.font   = '18px JetBrains Mono';
-  }
+export function drawHUD(score, level, weapon, health) {
+  // cœurs
+  const hearts = Array.from({ length: config.maxLives }, (_, i) =>
+    i < health ? '❤️' : '🤍'
+  ).join(' ');
 
-  draw(score, lives, level, weaponType, weaponLevel) {
-    this.ctx.font      = this.font;
-    this.ctx.textAlign = 'left';
+  // libellé arme avec X/MAX ou MAX
+  const wc   = config.weaponConfigs[weapon.type];
+  const cur  = weapon.level;
+  const max  = wc.maxLevel;
+  const lvlT = cur >= max ? 'Niv. MAX' : `Niv. ${cur}/${max}`;
+  const label= `🔫 ${wc.displayName} ${lvlT}`;
 
-    // Score, Vies, Niveau (en blanc)
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillText(`Score: ${score}`, 10, 20);
-    this.ctx.fillText(`Lives: ${lives}`, 10, 40);
-    this.ctx.fillText(`Level: ${level}`, 10, 60);
+  document.getElementById('hud').innerHTML = `
+    <div class="hud-container">
+      <span>💯 Score: ${score}</span>
+      <span>🧬 Niveau: ${level}</span>
+      <span style="color:${wc.color}">${label}</span>
+      <span class="hearts">${hearts}</span>
+    </div>
+  `;
 
-    // Arme courante (dans sa couleur)
-    const color = config.dropColors[weaponType] || '#ffffff';
-    this.ctx.fillStyle = color;
-    this.ctx.fillText(`Weapon: ${weaponType} (lvl ${weaponLevel})`, 10, 80);
+  // Pause btn
+  if (!document.getElementById('pauseBtn')) {
+    const btn = document.createElement('button');
+    btn.id = 'pauseBtn'; btn.textContent = 'Pause';
+    document.body.appendChild(btn);
+    bindPauseButton(btn);
   }
 }

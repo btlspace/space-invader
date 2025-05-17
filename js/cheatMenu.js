@@ -1,4 +1,5 @@
-// cheatMenu.js
+// js/cheatMenu.js
+
 import { config } from '../config.js';
 
 export class CheatMenu {
@@ -17,7 +18,8 @@ export class CheatMenu {
       'Set Level'
     ];
     this.index       = 0;
-    this.weaponTypes = Object.keys(config.dropWeights);
+    // On prend désormais les types d'armes depuis config.weaponConfigs
+    this.weaponTypes = Object.keys(config.weaponConfigs);
   }
 
   toggle() {
@@ -48,16 +50,21 @@ export class CheatMenu {
     const pl  = sc.player;
     switch (opt) {
       case 'Weapon Type': {
-        const i = this.weaponTypes.indexOf(pl.weaponType);
+        const i  = this.weaponTypes.indexOf(pl.weaponType);
         const ni = (i + delta + this.weaponTypes.length) % this.weaponTypes.length;
         pl.weaponType  = this.weaponTypes[ni];
+        // reset level if explosive
         if (pl.weaponType === 'explosive') pl.weaponLevel = 1;
         break;
       }
       case 'Weapon Level':
         if (pl.weaponType !== 'explosive') {
-          pl.weaponLevel = Math.max(1,
-            Math.min(config.maxUpgradeLevel, pl.weaponLevel + delta)
+          pl.weaponLevel = Math.max(
+            1,
+            Math.min(
+              config.weaponConfigs[pl.weaponType].maxLevel,
+              pl.weaponLevel + delta
+            )
           );
         }
         break;
@@ -81,7 +88,7 @@ export class CheatMenu {
     const w = 300;
     const h = this.options.length * 30 + 20;
     const x = 50;
-    const y = this.scene.canvas.height - h - 20;  // en bas de l’écran
+    const y = this.scene.canvas.height - h - 20;
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(x, y, w, h);
@@ -93,12 +100,24 @@ export class CheatMenu {
       ctx.fillStyle = (i === this.index) ? '#ff0' : '#fff';
       let val;
       switch (opt) {
-        case 'Weapon Type':        val = this.scene.player.weaponType;        break;
-        case 'Weapon Level':       val = this.scene.player.weaponLevel;       break;
-        case 'God Mode':           val = this.scene.godMode ? 'ON' : 'OFF';   break;
-        case 'Disable Drops':      val = this.scene.disableDrops ? 'ON' : 'OFF'; break;
-        case 'Drop Equipped Only': val = this.scene.onlyDropEquipped ? 'ON' : 'OFF'; break;
-        case 'Set Level':          val = this.scene.level;                    break;
+        case 'Weapon Type':
+          val = this.scene.player.weaponType;
+          break;
+        case 'Weapon Level':
+          val = this.scene.player.weaponLevel;
+          break;
+        case 'God Mode':
+          val = this.scene.godMode ? 'ON' : 'OFF';
+          break;
+        case 'Disable Drops':
+          val = this.scene.disableDrops ? 'ON' : 'OFF';
+          break;
+        case 'Drop Equipped Only':
+          val = this.scene.onlyDropEquipped ? 'ON' : 'OFF';
+          break;
+        case 'Set Level':
+          val = this.scene.level;
+          break;
       }
       ctx.fillText(`${opt}: ${val}`, x + 10, yy);
     });

@@ -1,24 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Space Invader</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Invader - berthel.me</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="icon" href="assets/img/saucer2a.ico" type="image/x-icon">
+  <link rel="stylesheet" href="style.css">
+  <!-- JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Particles.js pour le fond étoilé -->
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js" defer></script>
+  <script src="js/particles-config.js" defer></script>
+  <!-- Modules design (overlay + HUD) -->
+  <script type="module" src="js/sceneOverlay.js" defer></script>
+  <script type="module" src="js/hud.js" defer></script>
+  <!-- Ton main.js (logique du jeu) -->
+  <script type="module" src="js/main.js" defer></script>
 </head>
 <body>
-  <!-- Canvas de jeu -->
+  <div id="particles-js"></div>
   <canvas id="gameCanvas"></canvas>
-  <!-- Conteneur HUD -->
   <div id="hud"></div>
-
-  <!-- Chargement de la configuration et du script principal -->
-  <script type="module" src="./config.js"></script>
-  <script type="module" src="./js/main.js"></script>
-  <!-- Debug: Vérifie que index.html se charge correctement -->
-  <script>
-    window.addEventListener('load', () => console.log('Index.html loaded successfully'));
-  </script>
+  <div id="overlay"></div>
+  <footer id="footer">
+    <a href="https://github.com/btlspace/" target="_blank">
+      <img src="assets/img/github.svg" alt="GitHub"> GitHub
+    </a>
+  </footer>
 </body>
 </html>

@@ -1,14 +1,16 @@
-// sceneGame.js
-import { config }        from '../config.js';
-import { Player }        from './player.js';
-import { Enemies }       from './enemies.js';
-import { WeaponManager } from './weapons.js';
-import { EnemyWeapons }  from './enemyWeapons.js';
-import { DropManager }   from './drops.js';
-import { HUD }           from './hud.js';
-import { SceneOver }     from './sceneOver.js';
-import { audio }         from './audioManager.js';
-import { CheatMenu }     from './cheatMenu.js';
+// js/sceneGame.js
+
+import { config }           from '../config.js';
+import { Player }           from './player.js';
+import { Enemies }          from './enemies.js';
+import { WeaponManager }    from './weapons.js';
+import { EnemyWeapons }     from './enemyWeapons.js';
+import { DropManager }      from './drops.js';
+import { ExplosionManager } from './explosionManager.js';
+import { SceneOver }        from './sceneOver.js';
+import { audio }            from './audioManager.js';
+import { CheatMenu }        from './cheatMenu.js';
+import { drawHUD }          from './hud.js';
 
 export class SceneGame {
   constructor(canvas, ctx) {
@@ -16,13 +18,17 @@ export class SceneGame {
     this.ctx              = ctx;
     this.level            = 1;
     this.score            = 0;
-    this.lives            = 3;
+    this.lives            = config.maxLives;
     this.gameOver         = false;
     this.godMode          = false;
     this.disableDrops     = false;
     this.onlyDropEquipped = false;
+    this.paused           = false;
+
+    this.explosions       = new ExplosionManager();
     this.cheatMenu        = new CheatMenu(this);
 
+    // Cheat menu toggle
     window.addEventListener('keydown', e => {
       if (e.key === 'Tab') {
         this.cheatMenu.toggle();
@@ -35,19 +41,17 @@ export class SceneGame {
   }
 
   _setupLevel() {
+    // conserve score, lives et arme
     const prevType  = this.player?.weaponType  || 'classic';
     const prevLevel = this.player?.weaponLevel || 1;
 
     this.player        = new Player(this.canvas, this.ctx, prevType, prevLevel);
     this.enemies       = new Enemies(this.canvas, this.ctx, this.level);
-    this.weaponManager = new WeaponManager(this.canvas, this.ctx);
+    this.weaponManager = new WeaponManager(this.canvas, this.ctx, this.explosions);
     this.enemyWeapons  = new EnemyWeapons(this.canvas, this.ctx, this.enemies);
     this.dropManager   = new DropManager(this.canvas, this.ctx);
-    this.hud           = new HUD(this.canvas, this.ctx);
     this.lastTime      = performance.now();
-    this.gameOver      = false;  // Réactive la boucle si on reload niveau après perte de vie
-
-    console.log(`Level ${this.level} setup → ${this.enemies.enemies.length} enemies`);
+    this.gameOver      = false;
   }
 
   start() {
@@ -55,9 +59,9 @@ export class SceneGame {
     this.animationFrame = requestAnimationFrame(this.loop);
   }
 
-  loop = (timestamp) => {
-    // Si le cheat menu est actif, on n'update pas mais on continue le draw
-    if (!this.cheatMenu.active && !this.gameOver) {
+  loop = timestamp => {
+    // update only if not paused, not in cheat menu, and not game over
+    if (!this.cheatMenu.active && !this.paused && !this.gameOver) {
       const delta = (timestamp - this.lastTime) / 1000;
       this.lastTime = timestamp;
       this.update(delta);
@@ -77,7 +81,7 @@ export class SceneGame {
   update(delta) {
     this.player.update(delta);
 
-    // 1) Tirs ennemis
+    // enemy bullets → player
     const pHits = this.enemyWeapons.update(delta, this.player);
     if (pHits > 0) {
       audio.play('playerExplosion');
@@ -85,50 +89,47 @@ export class SceneGame {
       return;
     }
 
-    // 2) Déplacement ennemis
+    // move enemies
     this.enemies.update(delta);
 
-    // 3) Tirs joueur & collisions
+    // player bullets → enemies & spawn explosion
     const hits = this.weaponManager.update(delta, this.player, this.enemies);
 
-    // 4) Spawn drops
+    // update explosion visuals
+    this.explosions.update(delta);
+
+    // spawn drops for killed enemies
     this.enemies.enemies.forEach(e => {
-      if (!e.alive && !e._dropDone) {
-        if (!this.disableDrops) {
-          const dropX = e.x + e.width / 2 - 10;
-          const dropY = e.y;
-          if (this.onlyDropEquipped) {
-            this.dropManager.drops.push({
-              x: dropX, y: dropY, size: 20,
-              type: this.player.weaponType, vy: 100
-            });
-          } else {
-            this.dropManager.trySpawn(dropX, dropY);
-          }
-        }
+      if (!e.alive && !e._dropDone && !this.disableDrops) {
+        const x = e.x + e.width / 2 - 10;
+        const y = e.y;
+        this.dropManager.trySpawn(
+          x,
+          y,
+          this.onlyDropEquipped ? this.player.weaponType : undefined
+        );
         e._dropDone = true;
       }
     });
 
-    // 5) Collecte drops & bonus score
+    // collect drops & apply bonuses
     const collected = this.dropManager.update(delta, this.player);
     collected.forEach(type => {
       const bonus = this.player.upgradeWeapon(type);
       if (bonus) this.score += bonus;
     });
 
-    // 6) Score hits
     this.score += hits;
 
-    // 7) Clear de niveau ?
+    // level clear
     if (this.enemies.enemies.every(e => !e.alive)) {
       audio.play('levelUp');
       this.level++;
       this._setupLevel();
-      return;
+      return;  // avoid triggering _loseLife after level up
     }
 
-    // 8) Ennemis au bas
+    // enemies reached bottom
     const reached = this.enemies.enemies.some(
       e => e.alive && e.y + e.height >= this.canvas.height
     );
@@ -139,44 +140,41 @@ export class SceneGame {
   }
 
   _loseLife() {
-    // Si godMode activé, on ignore la perte de vie
-    if (this.godMode) return;
-
-    // Si on a déjà déclenché le Game Over, on ne fait rien
-    if (this.gameOver) return;
-
+    if (this.godMode || this.gameOver) return;
     this.lives--;
-    console.log('Life lost! Lives remaining:', this.lives);
-
     if (this.lives <= 0) {
-      // Bloquer à 0 et afficher Game Over
       this.lives    = 0;
       this.gameOver = true;
       cancelAnimationFrame(this.animationFrame);
       audio.play('gameOver');
       new SceneOver(this.canvas, this.ctx, this.score).start();
     } else {
-      console.log(`Restarting level ${this.level}`);
+      audio.play('lifeLost');
       this._setupLevel();
     }
   }
 
-  draw() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Joueur toujours visible (même en godMode)
-    this.player.draw();
+draw() {
+  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.enemies.draw();
-    this.weaponManager.draw();
-    this.enemyWeapons.draw();
-    this.dropManager.draw();
-    this.hud.draw(
-      this.score,
-      this.lives,
-      this.level,
-      this.player.weaponType,
-      this.player.weaponLevel
-    );
-  }
+  // dessin des entités
+  this.player.draw();
+  this.enemies.draw();
+  this.weaponManager.draw();
+  this.enemyWeapons.draw();
+  this.dropManager.draw();
+  this.explosions.draw(this.ctx);
+
+  // HUD
+  drawHUD(
+    this.score,
+    this.level,
+    { type: this.player.weaponType, level: this.player.weaponLevel },
+    this.lives
+  );
+}
+
+
+
 }

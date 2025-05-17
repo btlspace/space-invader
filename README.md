@@ -1,6 +1,6 @@
 # Space Invader Personal Site Game
 
-Un mini-jeu Space Invader à héberger sur GitHub Pages, intégré dans un site personnel (berthel.me).
+Mini-jeu **Space Invader** intégré à un site personnel ([berthel.me](https://berthel.me)), conçu pour être facilement personnalisable via un simple fichier de configuration.
 
 ---
 
@@ -8,73 +8,96 @@ Un mini-jeu Space Invader à héberger sur GitHub Pages, intégré dans un site 
 
 1. [Aperçu du projet](#aperçu-du-projet)  
 2. [Structure du dépôt](#structure-du-dépôt)  
-3. [Configuration](#configuration)  
-4. [Logique de jeu](#logique-de-jeu)  
-   - [Flux des scènes](#flux-des-scènes)  
-   - [Vaisseau (Player)](#vaisseau-player)  
-   - [Ennemis](#ennemis)  
-   - [Armes & améliorations](#armes--améliorations)  
-   - [Drops & rarité](#drops--rarité)  
-   - [Difficulté & progression](#difficulté--progression)  
-5. [Interface & HUD](#interface--hud)  
-6. [Contrôles](#contrôles)  
-7. [Charte graphique](#charte-graphique)  
-8. [Assets & crédits](#assets--crédits)  
-9. [Installation & développement](#installation--développement)  
-10. [Déploiement sur GitHub Pages](#déploiement-sur-github-pages)  
+3. [Capture d’écran](#capture-décran)  
+4. [Configuration](#configuration)  
+5. [Logique de jeu](#logique-de-jeu)  
+    - [Flux des scènes](#flux-des-scènes)  
+    - [Vaisseau (Player)](#vaisseau-player)  
+    - [Ennemis](#ennemis)  
+    - [Armes & améliorations](#armes--améliorations)  
+    - [Drops & rarité](#drops--rarité)  
+    - [Difficulté & progression](#difficulté--progression)  
+6. [Interface & HUD](#interface--hud)  
+7. [Contrôles](#contrôles)  
+8. [Charte graphique](#charte-graphique)  
+9. [Assets & crédits](#assets--crédits)  
+10. [Installation & développement](#installation--développement)  
+11. [Licence](#licence)  
 
 ---
 
 ## Aperçu du projet
 
-- **But** : proposer un jeu Space Invader simple et ludique en guise d’easter-egg sur un site perso.  
-- **Tech stack** : HTML/CSS vanilla + ES Modules, API Canvas ou Phaser 3.  
-- **Mobile-friendly** : contrôles tactiles (flèches + bouton “Tirer”).  
-- **Hosting** : GitHub Pages.  
+- **Objectif** : Offrir un jeu Space Invader simple, moderne et personnalisable, utilisable comme easter-egg ou démonstrateur technique sur un site personnel.
+- **Technologies** :  
+  - **Front-end** : HTML/CSS natif, JavaScript ES Modules, Canvas API (ou Phaser 3 si version avancée).
+  - **Mobile-friendly** : Contrôles tactiles natifs intégrés (flèches + bouton "Tirer").
+- **Personnalisation** : Difficulté, progression et rareté des bonus 100% paramétrables via `config.js`.
 
 ---
 
 ## Structure du dépôt
 
 ```
-
 /
-├ index.html
-├ style.css
-├ config.js         ← configuration globale (vitesse, rareté, drop rate…)
-├ README.md
+├ assets/
+│   ├ img/
+│   └ sounds/
 ├ js/
-│  ├ main.js
-│  ├ sceneBoot.js
-│  ├ sceneTuto.js
-│  ├ sceneGame.js
-│  ├ sceneOver.js
-│  ├ player.js
-│  ├ enemies.js
-│  ├ weapons.js
-│  ├ drops.js
-│  ├ hud.js
-│  └ audioManager.js
-└ assets/
-├ img/
-└ sounds/
+│   ├ audioManager.js
+│   ├ cheatMenu.js
+│   ├ drops.js
+│   ├ enemies.js
+│   ├ enemyWeapons.js
+│   ├ explosionManager.js
+│   ├ hud.js
+│   ├ main.js
+│   ├ particles-config.js
+│   ├ player.js
+│   ├ sceneBoot.js
+│   ├ sceneGame.js
+│   ├ sceneOver.js
+│   ├ sceneOverlay.js
+│   └ weapons.js
+├ CNAME
+├ config.js
+├ index.html
+├ README.md
+└ style.css
+```
 
-````
+---
+
+## Capture d’écran
+
+![Capture d’écran du jeu Space Invader](./assets/img/screenshot.png)
 
 ---
 
 ## Configuration
 
-Un fichier **`config.js`** permet de régler :
+La personnalisation du jeu s’effectue via **`config.js`** (aucune modification du code principal nécessaire) :
 
-- **Vitesse initiale** du vaisseau et des ennemis  
-- **Facteur de progression** exponentiel (`SPEED_FACTOR`, `COUNT_FACTOR`)  
-- **Taux de drop** global (ex. 0.05)  
-- **Poids** de chaque type d’arme dans les drops  
-- **Niveaux max** d’amélioration  
-- **Paramètres mobiles** (taille des boutons tactiles…)  
+- **Vitesse de base** (`baseSpeed`) du vaisseau et des ennemis.
+- **Progression** : facteurs exponentiels (`SPEED_FACTOR`, `COUNT_FACTOR`).
+- **Taux de drop** global (`dropRate`, ex. 0.05 pour 5%).
+- **Pondération** des armes dans les drops (`dropWeights`).
+- **Niveau maximal** pour chaque type d’arme.
+- **Paramètres mobiles** : taille et placement des boutons tactiles, sensibilité.
 
-> Modifier `config.js` suffit pour ajuster la difficulté et la rareté sans toucher au code.
+Exemple d’options (extrait du fichier de config) :
+```js
+export default {
+  baseSpeed: 2.5,
+  speedFactor: 1.07,
+  countFactor: 1.1,
+  dropRate: 0.05,
+  dropWeights: { classic: 0.6, spread: 0.25, explosive: 0.1, piercing: 0.05 },
+  maxWeaponLevel: 5,
+  mobile: { buttonSize: 60 }
+}
+```
+*Astuce : pour ajuster la difficulté, il suffit de modifier ce fichier puis de recharger la page.*
 
 ---
 
@@ -82,77 +105,73 @@ Un fichier **`config.js`** permet de régler :
 
 ### Flux des scènes
 
-1. **Boot** : précharge assets, configure entrées.  
-2. **Tuto** : overlay d’accueil “`invader@berthel.me:~$_`” avec clignotant, mini-tutoriel, crédits.  
-3. **Game** : boucle principale (update, collisions, génération).  
-4. **Game Over** : overlay “GAME OVER”, score, bouton “Rejouer”.  
+1. **Boot** : Préchargement des assets (sprites, sons) et initialisation des entrées (clavier/tactile).
+2. **Tuto** : Overlay type terminal (`invader@berthel.me:~$_`) avec clignotant, tutoriel et crédits.
+3. **Game** : Boucle principale : gestion du joueur, ennemis, collisions, génération, drops.
+4. **Game Over** : Overlay final (“GAME OVER”), affichage du score, bouton “Rejouer”.
 
 ### Vaisseau (Player)
 
-- Déplacement horizontal entre `0` et `canvas.width - ship.width`.  
-- 3 vies (♥ ×3).  
-- Touche Espace ou bouton mobile pour tirer.
+- Mouvement horizontal uniquement (`0` à `canvas.width - ship.width`).
+- 3 vies (♥ ×3, affichées dans le HUD).
+- Touche Espace ou bouton tactile pour tirer.
+- Récupération d’armes : améliore le niveau de l’arme courante (max 5), changement de type = reset niveau.
 
 ### Ennemis
 
-- **Génération procédurale** :
-  ```js
-  rows = config.baseRows + Math.floor(level / 2);
-  cols = config.baseCols + (level % config.baseCols);
-````
-
-* **Vitesse** :
-
-  ```js
-  enemySpeed = config.baseSpeed * Math.pow(config.speedFactor, level-1);
-  ```
-* **Descente de groupe** quand le bord est atteint.
+- **Génération procédurale** en fonction du niveau :
+    ```js
+    rows = config.baseRows + Math.floor(level / 2);
+    cols = config.baseCols + (level % config.baseCols);
+    ```
+- **Vitesse évolutive** :
+    ```js
+    enemySpeed = config.baseSpeed * Math.pow(config.speedFactor, level - 1);
+    ```
+- Mouvement de groupe avec descente à chaque bord atteint.
 
 ### Armes & améliorations
 
-4 types, chacun jusqu’à 5 niveaux :
+4 types d’armes, chacune upgradable jusqu’au niveau 5 :
+1. **Classic** : tir simple, 1 projectile.
+2. **Spread** : cône de tirs multiples, nombre dépend du niveau.
+3. **Explosive** : tir explosif, zone d’effet croissante.
+4. **Piercing** : traverse plusieurs ennemis (jusqu’à `level`).
 
-1. **Classic** : laser droit (1 projectile).
-2. **Spread** : éventail de lasers (niveau projectiles).
-3. **Explosive** : projectile explose (rayon \~ niveau × 10 px).
-4. **Piercing** : traverse jusqu’à `level` ennemis.
-
-* Pickup d’un même type → niveau++ (max 5), puis bonus de score.
-* Pickup d’un autre type → reset niveau à 1 pour le nouveau type.
+- **Pickup d’un même type** : up niveau (bonus de score au-delà du niveau max).
+- **Pickup autre type** : changement de type, niveau = 1.
 
 ### Drops & rarité
 
-* À chaque ennemi tué :
-
-  1. Tirage pour drop (`config.dropRate`, ex. 5 %).
-  2. Si oui : sélection pondérée selon `config.dropWeights = { classic:0.6, spread:0.25, explosive:0.1, piercing:0.05 }`.
-* Drops tombent et sont ramassés au contact.
+- **À chaque ennemi tué** : tirage selon `dropRate` (ex : 5% de chance).
+- Si drop : type choisi selon `dropWeights` (poids paramétrables).
+- Les drops tombent, récupération par collision avec le vaisseau.
 
 ### Difficulté & progression
 
-* **Exponentielle** : vitesse et nombre d’ennemis, cadence tirs, diminution dropRate.
-* **Réglables** dans `config.js`.
+- Progression exponentielle : nombre, vitesse et cadence de tir des ennemis.
+- DropRate diminue légèrement à chaque niveau.
+- Tous les paramètres sont ajustables via `config.js`.
 
 ---
 
 ## Interface & HUD
 
-* **HUD** coin supérieur gauche : Score, Niveau, Arme courante + niveau.
-* **Vies** coin supérieur droit : cœurs ♥.
-* **Footer** : lien vers GitHub (Toujours visible).
+- **HUD** coin supérieur gauche : Score, Niveau, Arme courante + niveau.
+- **Vies** coin supérieur droit : Cœurs ♥.
+- **Overlay** : Effet terminal avec clignotant (_).
 
 ---
 
 ## Contrôles
 
-* **Desktop** :
+**Desktop :**
+- ← / → : déplacer le vaisseau
+- Espace : tirer
 
-  * ← / → : déplacer
-  * Espace : tirer
-* **Mobile** :
-
-  * Flèches tactiles à l’écran
-  * Bouton “Tirer”
+**Mobile :**
+- Flèches tactiles affichées à l’écran
+- Bouton “Tirer” tactile dédié
 
 ---
 
@@ -170,42 +189,51 @@ Un fichier **`config.js`** permet de régler :
 
 ### Typographie
 
-* **Police** : `JetBrains Mono`, monospace.
-* **Clignotant** `_` via CSS :
-
-  ```css
-  #overlay-title::after {
-    content: '_';
-    animation: blink 1s infinite;
-  }
-  @keyframes blink { 0%,50%{opacity:1;}51%,100%{opacity:0;} }
-  ```
+- **Police principale** : `JetBrains Mono`, monospace pour un rendu terminal rétro/moderne.
+- **Effet clignotant** (overlay terminal) via CSS :
+    ```css
+    #overlay-title::after {
+      content: '_';
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%,50%{opacity:1;}51%,100%{opacity:0;} }
+    ```
 
 ---
 
 ## Assets & crédits
 
-* **Sprites** : `/assets/img/` (vaisseau, saucers, drops).
-* **Sons** : `/assets/sounds/` (shoot.wav, explosion.wav, hit.wav).
-* **Crédits** : classicgaming.cc (sprites & effets sonores).
+- **Sprites** : `/assets/img/` (vaisseau, ennemis, drops…)
+- **Sons** : `/assets/sounds/` (shoot.wav, explosion.wav…)
+- **Crédits** : classicgaming.cc (sprites et sons), Sound design maison.
+
+Merci de respecter les licences des assets tiers lors de la redistribution du jeu.
 
 ---
 
 ## Installation & développement
 
-1. `git clone https://github.com/TONPROFIL/mon-space-invader.git`
-2. `cd mon-space-invader`
-3. `npx http-server .` ou Live Server VS Code
-4. Modifier `config.js` et les modules sous `js/`
+1. **Cloner le dépôt :**
+    ```sh
+    git clone https://github.com/TONPROFIL/mon-space-invader.git
+    cd mon-space-invader
+    ```
+2. **Lancer en local** :
+    - Avec VS Code + extension *Live Server* (recommandé)
+    - Ou :
+      ```sh
+      npx http-server .
+      ```
+3. **Développement :**
+    - Modifier `config.js` pour personnaliser la difficulté, la progression, la rareté.
+    - Personnaliser les modules dans `/js/` si besoin de fonctionnalités avancées.
 
 ---
 
-## Déploiement sur GitHub Pages
+## Licence
 
-1. Pousser sur `main`.
-2. GitHub → Settings → Pages → Source : `main` / root.
-3. Attendre la publication sur
-   `https://TONPROFIL.github.io/mon-space-invader/`.
+Ce projet est publié sous licence **MIT** (voir le fichier `LICENSE`).  
+Vous êtes libre de l’utiliser, le modifier, le partager pour tout usage non commercial.  
+Merci de citer ce dépôt si vous réutilisez tout ou partie du code ou des assets.
 
 ---
-

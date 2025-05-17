@@ -1,23 +1,33 @@
-// player.js
+// js/player.js
+
 import { config } from '../config.js';
 
 export class Player {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {string} prevType   – type d’arme conservé
+   * @param {number} prevLevel  – niveau d’arme conservé
+   */
   constructor(canvas, ctx, prevType = 'classic', prevLevel = 1) {
     this.canvas = canvas;
     this.ctx    = ctx;
     this.width  = 50;
-    this.height = 30;
+    this.height = 50;
     this.x      = (canvas.width - this.width) / 2;
     this.y      = canvas.height - this.height - 10;
     this.speed  = config.shipSpeed;
 
-    this.movingLeft   = false;
-    this.movingRight  = false;
-    this.shooting     = false;
+    this.movingLeft  = false;
+    this.movingRight = false;
+    this.shooting    = false;
 
     // conserver l’arme entre niveaux
-    this.weaponType   = prevType;
-    this.weaponLevel  = prevLevel;
+    this.weaponType  = prevType;
+    this.weaponLevel = prevLevel;
+
+    // Sprite préchargé dans sceneBoot.js
+    this.sprite = window.assets.images.ship;
 
     this.setupControls();
   }
@@ -38,22 +48,28 @@ export class Player {
   update(delta) {
     if (this.movingLeft)  this.x -= this.speed * delta;
     if (this.movingRight) this.x += this.speed * delta;
+    // bornes du canvas
     this.x = Math.max(0, Math.min(this.x, this.canvas.width - this.width));
   }
 
   draw() {
-    this.ctx.fillStyle = '#0f0';
-    this.ctx.fillRect(this.x, this.y, this.width, this.height);
+    // dessine le sprite du vaisseau
+    this.ctx.drawImage(
+      this.sprite,
+      this.x, this.y,
+      this.width, this.height
+    );
   }
 
   /**
+   * Gère la montée de niveau de l’arme ou le switch d’arme.
    * @param {string} type
-   * @returns {number} bonus score si max level, sinon 0
+   * @returns {number} bonus score si déjà au max, sinon 0
    */
   upgradeWeapon(type) {
     let bonus = 0;
     if (type === 'explosive') {
-      // arme rare, pas de niveaux
+      // arme rare, pas de montée de niveau
       if (this.weaponType !== 'explosive') {
         this.weaponType  = 'explosive';
         this.weaponLevel = 1;
@@ -63,8 +79,8 @@ export class Player {
         if (this.weaponLevel < config.maxUpgradeLevel) {
           this.weaponLevel++;
         } else {
-          // déjà au max → bonus
-          bonus = config.maxLevelBonus;
+          // déjà au max → bonus de score
+          bonus = config.maxLevelBonus ?? 0;
         }
       } else {
         this.weaponType  = type;
