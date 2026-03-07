@@ -85,3 +85,12 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN: Plan d’amélioration + débuggage
 - Added per-scenario screenshot/state artifacts and a `summary.json` report.
 - WSL validation run passed: `Scenarios=5`, `ConsoleErrors=0`.
 - Cleaned local test artifacts/dependencies after run.
+
+## 2026-03-07 - Product polish pass (high score, mute, fullscreen)
+- Added persistent high score (`localStorage`) and surfaced it in HUD + game-over overlay.
+- Added audio mute support with persistence:
+  - `M` keyboard shortcut,
+  - `Mute/Unmute` HUD button.
+- Added fullscreen toggle on `F` and canvas resize sync on `fullscreenchange`.
+- Extended debug output with `highScore` and `muted` fields.
+- WSL regression smoke re-run passed (`Scenarios=5`, no console errors).

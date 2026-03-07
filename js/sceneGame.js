@@ -12,6 +12,25 @@ import { CheatMenu } from './cheatMenu.js';
 import { drawHUD } from './hud.js';
 
 const FIXED_DT = 1 / 60;
+const HIGH_SCORE_KEY = 'invader:highScore';
+
+function readHighScore() {
+  try {
+    const raw = localStorage.getItem(HIGH_SCORE_KEY);
+    const value = Number(raw || 0);
+    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeHighScore(value) {
+  try {
+    localStorage.setItem(HIGH_SCORE_KEY, String(value));
+  } catch {
+    // Ignore storage errors.
+  }
+}
 
 export class SceneGame {
   constructor(canvas, ctx) {
@@ -20,6 +39,7 @@ export class SceneGame {
 
     this.level = 1;
     this.score = 0;
+    this.highScore = readHighScore();
     this.lives = config.maxLives;
 
     this.mode = 'playing';
@@ -38,10 +58,39 @@ export class SceneGame {
     window.sceneGame = this;
   }
 
+  async _toggleFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Ignore fullscreen permission or browser capability errors.
+    }
+  }
+
+  _updateHighScore() {
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      writeHighScore(this.highScore);
+    }
+  }
+
   _bindGlobalKeys() {
     this.onKeyDown = (e) => {
       if (e.key === 'Tab') {
         this.cheatMenu.toggle();
+        e.preventDefault();
+      }
+
+      if (e.code === 'KeyM') {
+        audio.toggleMuted();
+        e.preventDefault();
+      }
+
+      if (e.code === 'KeyF') {
+        this._toggleFullscreen();
         e.preventDefault();
       }
 
@@ -136,6 +185,8 @@ export class SceneGame {
       this.score += this.player.upgradeWeapon(type);
     });
 
+    this._updateHighScore();
+
     if (this.enemies.enemies.every((e) => !e.alive)) {
       audio.play('levelUp');
       this.level += 1;
@@ -161,6 +212,7 @@ export class SceneGame {
       this.lives = 0;
       this.mode = 'game_over';
       this.paused = false;
+      this._updateHighScore();
       audio.play('gameOver');
       return;
     }
@@ -170,6 +222,7 @@ export class SceneGame {
   }
 
   restart() {
+    this._updateHighScore();
     this.level = 1;
     this.score = 0;
     this.lives = config.maxLives;
@@ -196,7 +249,9 @@ export class SceneGame {
       paused: this.paused,
       level: this.level,
       score: this.score,
+      highScore: this.highScore,
       lives: this.lives,
+      muted: audio.isMuted,
       player: {
         x: Math.round(this.player.x),
         y: Math.round(this.player.y),
@@ -226,7 +281,8 @@ export class SceneGame {
       this.score,
       this.level,
       { type: this.player.weaponType, level: this.player.weaponLevel },
-      this.lives
+      this.lives,
+      this.highScore
     );
 
     if (this.mode === 'game_over') {
@@ -250,9 +306,10 @@ export class SceneGame {
     this.ctx.fillStyle = '#ffffff';
     this.ctx.font = '20px JetBrains Mono';
     this.ctx.fillText(`Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+    this.ctx.fillText(`Best: ${this.highScore}`, this.canvas.width / 2, this.canvas.height / 2 + 50);
 
     if (showPrompt) {
-      this.ctx.fillText('Press SPACE to restart', this.canvas.width / 2, this.canvas.height / 2 + 56);
+      this.ctx.fillText('Press SPACE to restart', this.canvas.width / 2, this.canvas.height / 2 + 86);
     }
 
     this.ctx.restore();

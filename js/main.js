@@ -26,6 +26,10 @@ window.addEventListener('load', () => {
     resizeCanvasForFooter(canvas);
   });
 
+  document.addEventListener('fullscreenchange', () => {
+    resizeCanvasForFooter(canvas);
+  });
+
   const ctx = canvas.getContext('2d');
 
   const bootScene = new BootScene(canvas, ctx);
@@ -42,6 +46,8 @@ window.addEventListener('load', () => {
       score: 0,
       level: 0,
       lives: 0,
+      highScore: 0,
+      muted: false,
       player: null,
       enemies: [],
       playerBullets: [],

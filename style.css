@@ -271,3 +271,12 @@ kbd {
     font-size: 0.8rem;
   }
 }
+
+
+#muteBtn {
+  position: fixed;
+  top: 1rem;
+  right: 6.8rem;
+  z-index: 10;
+  padding: 0.8rem 1rem;
+}

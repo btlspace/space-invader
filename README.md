@@ -54,7 +54,7 @@ Jeu Space Invader en Canvas 2D utilise comme page ludique pour `berthel.me`.
   - Aucun controle tactile implemente actuellement.
 
 ## Gameplay
-- 3 vies, score, niveaux progressifs.
+- 3 vies, score, record local persistant et niveaux progressifs.
 - 4 types d'armes (`classic`, `spread`, `explosive`, `piercing`) avec niveaux max par arme.
 - Drops probabilistes selon `config.weaponConfigs[*].dropWeight` et `config.dropRate`.
 
@@ -87,3 +87,4 @@ Workflow disponible: `.github/workflows/cloud-playwright.yml`
 
 ## Licence
 Projet sous licence MIT (si fichier `LICENSE` present dans le depot).
+

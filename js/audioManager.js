@@ -1,7 +1,24 @@
 // audioManager.js
+function readMutedPreference() {
+  try {
+    return localStorage.getItem('invader:muted') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeMutedPreference(isMuted) {
+  try {
+    localStorage.setItem('invader:muted', isMuted ? '1' : '0');
+  } catch {
+    // Ignore storage errors in private mode/restricted contexts.
+  }
+}
+
 export class AudioManager {
   constructor() {
     this.sounds = {};
+    this.muted = readMutedPreference();
   }
 
   /**
@@ -21,12 +38,27 @@ export class AudioManager {
     });
   }
 
+  setMuted(nextMuted) {
+    this.muted = Boolean(nextMuted);
+    writeMutedPreference(this.muted);
+  }
+
+  toggleMuted() {
+    this.setMuted(!this.muted);
+    return this.muted;
+  }
+
+  get isMuted() {
+    return this.muted;
+  }
+
   /**
    * Joue le son préalablement chargé sous `name`.
    * Clone l’élément pour pouvoir superposer plusieurs lectures.
    * @param {string} name
    */
   play(name) {
+    if (this.muted) return;
     const original = this.sounds[name];
     if (!original) return;
     const audio = original.cloneNode();
