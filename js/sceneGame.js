@@ -1,105 +1,124 @@
 // js/sceneGame.js
 
-import { config }           from '../config.js';
-import { Player }           from './player.js';
-import { Enemies }          from './enemies.js';
-import { WeaponManager }    from './weapons.js';
-import { EnemyWeapons }     from './enemyWeapons.js';
-import { DropManager }      from './drops.js';
+import { config } from '../config.js';
+import { Player } from './player.js';
+import { Enemies } from './enemies.js';
+import { WeaponManager } from './weapons.js';
+import { EnemyWeapons } from './enemyWeapons.js';
+import { DropManager } from './drops.js';
 import { ExplosionManager } from './explosionManager.js';
-import { SceneOver }        from './sceneOver.js';
-import { audio }            from './audioManager.js';
-import { CheatMenu }        from './cheatMenu.js';
-import { drawHUD }          from './hud.js';
+import { audio } from './audioManager.js';
+import { CheatMenu } from './cheatMenu.js';
+import { drawHUD } from './hud.js';
+
+const FIXED_DT = 1 / 60;
 
 export class SceneGame {
   constructor(canvas, ctx) {
-    this.canvas           = canvas;
-    this.ctx              = ctx;
-    this.level            = 1;
-    this.score            = 0;
-    this.lives            = config.maxLives;
-    this.gameOver         = false;
-    this.godMode          = false;
-    this.disableDrops     = false;
+    this.canvas = canvas;
+    this.ctx = ctx;
+
+    this.level = 1;
+    this.score = 0;
+    this.lives = config.maxLives;
+
+    this.mode = 'playing';
+    this.godMode = false;
+    this.disableDrops = false;
     this.onlyDropEquipped = false;
-    this.paused           = false;
+    this.paused = false;
 
-    this.explosions       = new ExplosionManager();
-    this.cheatMenu        = new CheatMenu(this);
+    this.explosions = new ExplosionManager();
+    this.cheatMenu = new CheatMenu(this);
+    this.gameOverBlinkTick = 0;
 
-    // Cheat menu toggle
-    window.addEventListener('keydown', e => {
+    this._bindGlobalKeys();
+    this._setupLevel();
+
+    window.sceneGame = this;
+  }
+
+  _bindGlobalKeys() {
+    this.onKeyDown = (e) => {
       if (e.key === 'Tab') {
         this.cheatMenu.toggle();
         e.preventDefault();
       }
-      this.cheatMenu.handleKey(e);
-    });
 
-    this._setupLevel();
+      this.cheatMenu.handleKey(e);
+
+      if (this.mode === 'game_over' && e.code === 'Space') {
+        e.preventDefault();
+        this.restart();
+      }
+    };
+
+    window.addEventListener('keydown', this.onKeyDown);
   }
 
   _setupLevel() {
-    // conserve score, lives et arme
-    const prevType  = this.player?.weaponType  || 'classic';
+    const prevType = this.player?.weaponType || 'classic';
     const prevLevel = this.player?.weaponLevel || 1;
 
-    this.player        = new Player(this.canvas, this.ctx, prevType, prevLevel);
-    this.enemies       = new Enemies(this.canvas, this.ctx, this.level);
+    this.player = new Player(this.canvas, this.ctx, prevType, prevLevel);
+    this.enemies = new Enemies(this.canvas, this.ctx, this.level);
     this.weaponManager = new WeaponManager(this.canvas, this.ctx, this.explosions);
-    this.enemyWeapons  = new EnemyWeapons(this.canvas, this.ctx, this.enemies);
-    this.dropManager   = new DropManager(this.canvas, this.ctx);
-    this.lastTime      = performance.now();
-    this.gameOver      = false;
+    this.enemyWeapons = new EnemyWeapons(this.canvas, this.ctx, this.enemies);
+    this.dropManager = new DropManager(this.canvas, this.ctx);
   }
 
   start() {
-    this.gameOver = false;
+    this.mode = 'playing';
+    this.lastTime = performance.now();
+    this._startRaf();
+  }
+
+  _startRaf() {
+    cancelAnimationFrame(this.animationFrame);
     this.animationFrame = requestAnimationFrame(this.loop);
   }
 
-  loop = timestamp => {
-    // update only if not paused, not in cheat menu, and not game over
-    if (!this.cheatMenu.active && !this.paused && !this.gameOver) {
-      const delta = (timestamp - this.lastTime) / 1000;
-      this.lastTime = timestamp;
-      this.update(delta);
-    }
+  loop = (timestamp) => {
+    const elapsed = Math.max(0, timestamp - this.lastTime);
+    this.lastTime = timestamp;
 
-    this.draw();
+    this.advanceTime(elapsed);
 
-    if (this.cheatMenu.active) {
-      this.cheatMenu.draw(this.ctx);
-    }
+    this.animationFrame = requestAnimationFrame(this.loop);
+  }
 
-    if (!this.gameOver) {
-      this.animationFrame = requestAnimationFrame(this.loop);
+  advanceTime(ms) {
+    const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+    for (let i = 0; i < steps; i++) {
+      if (this.mode === 'playing' && !this.paused && !this.cheatMenu.active) {
+        this.update(FIXED_DT);
+      }
+      this.draw();
+      if (this.cheatMenu.active) {
+        this.cheatMenu.draw(this.ctx);
+      }
     }
   }
 
   update(delta) {
     this.player.update(delta);
 
-    // enemy bullets → player
-    const pHits = this.enemyWeapons.update(delta, this.player);
-    if (pHits > 0) {
+    const playerHits = this.enemyWeapons.update(delta, this.player);
+    if (playerHits > 0) {
       audio.play('playerExplosion');
       this._loseLife();
-      return;
+      if (this.mode === 'game_over') {
+        return;
+      }
     }
 
-    // move enemies
     this.enemies.update(delta);
 
-    // player bullets → enemies & spawn explosion
-    const hits = this.weaponManager.update(delta, this.player, this.enemies);
-
-    // update explosion visuals
+    const hitScore = this.weaponManager.update(delta, this.player, this.enemies);
     this.explosions.update(delta);
+    this.score += hitScore;
 
-    // spawn drops for killed enemies
-    this.enemies.enemies.forEach(e => {
+    this.enemies.enemies.forEach((e) => {
       if (!e.alive && !e._dropDone && !this.disableDrops) {
         const x = e.x + e.width / 2 - 10;
         const y = e.y;
@@ -112,69 +131,130 @@ export class SceneGame {
       }
     });
 
-    // collect drops & apply bonuses
     const collected = this.dropManager.update(delta, this.player);
-    collected.forEach(type => {
-      const bonus = this.player.upgradeWeapon(type);
-      if (bonus) this.score += bonus;
+    collected.forEach((type) => {
+      this.score += this.player.upgradeWeapon(type);
     });
 
-    this.score += hits;
-
-    // level clear
-    if (this.enemies.enemies.every(e => !e.alive)) {
+    if (this.enemies.enemies.every((e) => !e.alive)) {
       audio.play('levelUp');
-      this.level++;
+      this.level += 1;
       this._setupLevel();
-      return;  // avoid triggering _loseLife after level up
+      return;
     }
 
-    // enemies reached bottom
-    const reached = this.enemies.enemies.some(
-      e => e.alive && e.y + e.height >= this.canvas.height
+    const reachedBottom = this.enemies.enemies.some(
+      (e) => e.alive && e.y + e.height >= this.canvas.height
     );
-    if (reached) {
-      audio.play('lifeLost');
+    if (reachedBottom) {
       this._loseLife();
     }
   }
 
   _loseLife() {
-    if (this.godMode || this.gameOver) return;
-    this.lives--;
+    if (this.godMode || this.mode === 'game_over') {
+      return;
+    }
+
+    this.lives -= 1;
     if (this.lives <= 0) {
-      this.lives    = 0;
-      this.gameOver = true;
-      cancelAnimationFrame(this.animationFrame);
+      this.lives = 0;
+      this.mode = 'game_over';
+      this.paused = false;
       audio.play('gameOver');
-      new SceneOver(this.canvas, this.ctx, this.score).start();
-    } else {
-      audio.play('lifeLost');
-      this._setupLevel();
+      return;
+    }
+
+    audio.play('lifeLost');
+    this._setupLevel();
+  }
+
+  restart() {
+    this.level = 1;
+    this.score = 0;
+    this.lives = config.maxLives;
+    this.mode = 'playing';
+    this.paused = false;
+    this._setupLevel();
+  }
+
+  stop() {
+    cancelAnimationFrame(this.animationFrame);
+    if (this.onKeyDown) {
+      window.removeEventListener('keydown', this.onKeyDown);
     }
   }
 
+  getDebugState() {
+    const aliveEnemies = this.enemies.enemies
+      .filter((e) => e.alive)
+      .map((e) => ({ x: Math.round(e.x), y: Math.round(e.y), w: e.width, h: e.height }));
 
-draw() {
-  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    return {
+      coordinateSystem: 'origin top-left; +x right; +y down',
+      mode: this.mode,
+      paused: this.paused,
+      level: this.level,
+      score: this.score,
+      lives: this.lives,
+      player: {
+        x: Math.round(this.player.x),
+        y: Math.round(this.player.y),
+        w: this.player.width,
+        h: this.player.height,
+        weaponType: this.player.weaponType,
+        weaponLevel: this.player.weaponLevel
+      },
+      enemies: aliveEnemies,
+      enemyBullets: this.enemyWeapons.bullets.map((b) => ({ x: Math.round(b.x), y: Math.round(b.y) })),
+      playerBullets: this.weaponManager.bullets.map((b) => ({ x: Math.round(b.x), y: Math.round(b.y), type: b.type })),
+      drops: this.dropManager.drops.map((d) => ({ x: Math.round(d.x), y: Math.round(d.y), type: d.type }))
+    };
+  }
 
-  // dessin des entités
-  this.player.draw();
-  this.enemies.draw();
-  this.weaponManager.draw();
-  this.enemyWeapons.draw();
-  this.dropManager.draw();
-  this.explosions.draw(this.ctx);
+  draw() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-  // HUD
-  drawHUD(
-    this.score,
-    this.level,
-    { type: this.player.weaponType, level: this.player.weaponLevel },
-    this.lives
-  );
-}
+    this.player.draw();
+    this.enemies.draw();
+    this.weaponManager.draw();
+    this.enemyWeapons.draw();
+    this.dropManager.draw();
+    this.explosions.draw(this.ctx);
 
+    drawHUD(
+      this.score,
+      this.level,
+      { type: this.player.weaponType, level: this.player.weaponLevel },
+      this.lives
+    );
 
+    if (this.mode === 'game_over') {
+      this._drawGameOverOverlay();
+    }
+  }
 
+  _drawGameOverOverlay() {
+    this.gameOverBlinkTick += 1;
+    const showPrompt = Math.floor(this.gameOverBlinkTick / 30) % 2 === 0;
+
+    this.ctx.save();
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.fillStyle = '#ff3b3b';
+    this.ctx.textAlign = 'center';
+    this.ctx.font = 'bold 48px JetBrains Mono';
+    this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2 - 20);
+
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = '20px JetBrains Mono';
+    this.ctx.fillText(`Score: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 20);
+
+    if (showPrompt) {
+      this.ctx.fillText('Press SPACE to restart', this.canvas.width / 2, this.canvas.height / 2 + 56);
+    }
+
+    this.ctx.restore();
+  }
 }

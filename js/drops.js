@@ -39,7 +39,6 @@ export class DropManager {
         vy: 100,
         type: typeToDrop
       });
-      audio.play('powerup');
     }
   }
 

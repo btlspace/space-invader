@@ -1,21 +1,25 @@
 // js/enemyWeapons.js
 
 import { config } from '../config.js';
-import { audio }  from './audioManager.js';
+import { audio } from './audioManager.js';
+
+function pointInPlayer(x, y, player) {
+  return x >= player.x && x <= player.x + player.width && y >= player.y && y <= player.y + player.height;
+}
 
 export class EnemyWeapons {
   constructor(canvas, ctx, enemies) {
-    this.canvas       = canvas;
-    this.ctx          = ctx;
-    this.enemies      = enemies;
-    this.bullets      = [];
-    this.fireRate     = config.enemyFireRate;
-    this.bulletSpeed  = config.enemyBulletSpeed;
+    this.canvas = canvas;
+    this.ctx = ctx;
+    this.enemies = enemies;
+    this.bullets = [];
+    this.fireRate = config.enemyFireRate;
+    this.bulletSpeed = config.enemyBulletSpeed;
     this.timeSinceLast = 0;
   }
 
   /**
-   * @returns {number} hits – nombre de tirs ennemis ayant atteint le joueur
+   * @returns {number}
    */
   update(delta, player) {
     this.timeSinceLast += delta;
@@ -25,48 +29,57 @@ export class EnemyWeapons {
     }
 
     let hits = 0;
+
     for (let i = this.bullets.length - 1; i >= 0; i--) {
       const b = this.bullets[i];
-      b.y += this.bulletSpeed * delta;
+      const dy = this.bulletSpeed * delta;
+      const steps = Math.max(1, Math.ceil(Math.abs(dy) / 10));
+      const stepY = dy / steps;
+      let removed = false;
 
-      // collision avec le joueur
-      if (
-        b.x > player.x &&
-        b.x < player.x + player.width &&
-        b.y > player.y &&
-        b.y < player.y + player.height
-      ) {
-        hits++;
-        this.bullets.splice(i, 1);
-        console.log('Player hit by enemy bullet at', b.x, b.y);
-      } else if (b.y > this.canvas.height) {
+      for (let step = 0; step < steps && !removed; step++) {
+        b.y += stepY;
+
+        if (pointInPlayer(b.x, b.y, player)) {
+          hits += 1;
+          removed = true;
+          break;
+        }
+
+        if (b.y > this.canvas.height + 20) {
+          removed = true;
+        }
+      }
+
+      if (removed) {
         this.bullets.splice(i, 1);
       }
     }
+
     return hits;
   }
 
   _shootRandom() {
-    const alive = this.enemies.enemies.filter(e => e.alive);
-    if (!alive.length) return;
+    const alive = this.enemies.enemies.filter((e) => e.alive);
+    if (!alive.length) {
+      return;
+    }
+
     const shooter = alive[Math.floor(Math.random() * alive.length)];
     const x = shooter.x + shooter.width / 2;
     const y = shooter.y + shooter.height;
     this.bullets.push({ x, y, width: 4, height: 10 });
     audio.play('enemyShoot');
-    console.log('Enemy shot at', x, y);
   }
 
   draw() {
-    const ctx = this.ctx;
-    ctx.save();
-    // glow important en magenta
-    ctx.shadowBlur  = 12;
-    ctx.shadowColor = '#ff00ff';
-    ctx.fillStyle   = '#ff00ff';
-    this.bullets.forEach(b => {
-      ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
+    this.ctx.save();
+    this.ctx.shadowBlur = 12;
+    this.ctx.shadowColor = '#ff00ff';
+    this.ctx.fillStyle = '#ff00ff';
+    this.bullets.forEach((b) => {
+      this.ctx.fillRect(b.x - b.width / 2, b.y, b.width, b.height);
     });
-    ctx.restore();
+    this.ctx.restore();
   }
 }
