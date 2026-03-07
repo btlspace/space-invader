@@ -74,3 +74,14 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN: Plan d’amélioration + débuggage
 - Ran WSL Playwright smoke validation after cleanup changes:
   - `ConsoleErrors=0`, screenshot/state generated.
 - Cleaned local test dependencies/artifacts again (`node_modules`, `artifacts`, `output`, `package*.json`).
+
+## 2026-03-07 - Hardening regression matrix
+- Upgraded `scripts/cloud-smoke.mjs` from single smoke step to 5-scenario regression flow with assertions:
+  - start from menu,
+  - move + shoot,
+  - pause,
+  - resume,
+  - restart reset checks.
+- Added per-scenario screenshot/state artifacts and a `summary.json` report.
+- WSL validation run passed: `Scenarios=5`, `ConsoleErrors=0`.
+- Cleaned local test artifacts/dependencies after run.
