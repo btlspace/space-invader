@@ -1,0 +1,49 @@
+name: cloud-playwright-smoke
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'index.html'
+      - 'style.css'
+      - 'config.js'
+      - 'js/**'
+      - 'scripts/cloud-smoke.mjs'
+      - '.github/workflows/cloud-playwright.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 > server.log 2>&1 &
+          echo $! > server.pid
+
+      - name: Run smoke test
+        run: node scripts/cloud-smoke.mjs
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-artifacts
+          path: |
+            artifacts/**
+            server.log
