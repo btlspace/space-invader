@@ -109,3 +109,13 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN: Plan d’amélioration + débuggage
   - Canvas root URL: pass
   - Phaser `/phaser/`: pass
 - Updated cloud workflow to run both Canvas + Phaser smoke checks.
+
+## 2026-03-08 - Phaser parity phase 1
+- Improved Phaser prototype gameplay behavior toward Canvas parity:
+  - enemy formation horizontal stepping + edge descent,
+  - bottom reach -> life loss + wave reset,
+  - level progression scales enemy count/speed/fire delay,
+  - game-over flow with restart.
+- Aligned persistence keys with Canvas (`invader:highScore`, `invader:muted`).
+- Updated boot assets for additional SFX (`lifeLost`, `levelUp`).
+- Re-validated dual runtime regression (Canvas + Phaser) in WSL: pass, no console errors.
