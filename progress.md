@@ -94,3 +94,18 @@ Original prompt: PLEASE IMPLEMENT THIS PLAN: Plan d’amélioration + débuggage
 - Added fullscreen toggle on `F` and canvas resize sync on `fullscreenchange`.
 - Extended debug output with `highScore` and `muted` fields.
 - WSL regression smoke re-run passed (`Scenarios=5`, no console errors).
+
+## 2026-03-08 - Phaser migration phase started
+- Added parallel Phaser 3 prototype under `phaser/`:
+  - `phaser/index.html`
+  - `phaser/js/main.js`
+  - `phaser/js/scenes/{BootScene,MenuScene,GameScene}.js`
+- Implemented baseline gameplay parity features in prototype:
+  - movement/shooting, enemy waves, score/lives/high score,
+  - pause, mute, fullscreen,
+  - deterministic hooks (`render_game_to_text`, `advanceTime`).
+- Updated regression script compatibility to support both runtimes.
+- Validated WSL regression on both endpoints:
+  - Canvas root URL: pass
+  - Phaser `/phaser/`: pass
+- Updated cloud workflow to run both Canvas + Phaser smoke checks.

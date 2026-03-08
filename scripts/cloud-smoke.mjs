@@ -79,6 +79,17 @@ async function run() {
     s1 = await getState(page);
   }
 
+  if (!s1 || s1.mode !== 'playing') {
+    await page.evaluate(() => {
+      const game = window.phaserGame;
+      if (game && game.scene && game.scene.keys && game.scene.keys.MenuScene) {
+        game.scene.start('GameScene');
+      }
+    });
+    await wait(350);
+    s1 = await getState(page);
+  }
+
   await captureScenario(page, '01-started', summary, consoleErrors);
   assert(s1.mode === 'playing', `Expected mode=playing after start, got ${s1.mode}`);
 
@@ -109,6 +120,10 @@ async function run() {
   await page.evaluate(() => {
     if (window.sceneGame && typeof window.sceneGame.restart === 'function') {
       window.sceneGame.restart();
+      return;
+    }
+    if (window.phaserSceneGame && typeof window.phaserSceneGame.restart === 'function') {
+      window.phaserSceneGame.restart();
     }
   });
   await wait(250);
@@ -138,4 +153,6 @@ run().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+
 

@@ -8,13 +8,14 @@ on:
       - 'style.css'
       - 'config.js'
       - 'js/**'
+      - 'phaser/**'
       - 'scripts/cloud-smoke.mjs'
       - '.github/workflows/cloud-playwright.yml'
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -36,8 +37,11 @@ jobs:
           python3 -m http.server 4173 > server.log 2>&1 &
           echo $! > server.pid
 
-      - name: Run smoke test
-        run: node scripts/cloud-smoke.mjs
+      - name: Run canvas regression smoke
+        run: OUT_DIR=artifacts/canvas TEST_URL=http://127.0.0.1:4173 node scripts/cloud-smoke.mjs
+
+      - name: Run phaser regression smoke
+        run: OUT_DIR=artifacts/phaser TEST_URL=http://127.0.0.1:4173/phaser/ node scripts/cloud-smoke.mjs
 
       - name: Upload artifacts
         if: always()
